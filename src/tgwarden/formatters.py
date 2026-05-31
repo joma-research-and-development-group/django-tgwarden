@@ -48,6 +48,18 @@ class HTMLFormatter(logging.Formatter):
         )
         body = html.escape(msg_text, quote=True)
 
+        # Context block (injected by ContextFilter)
+        ctx_line = ""
+        if hasattr(record, "request_id"):
+            parts = [f"req#{record.request_id}"]
+            if hasattr(record, "request_method"):
+                parts.append(f"{record.request_method} {record.request_path}")  # type: ignore[attr-defined]
+            if hasattr(record, "user_id") and record.user_id is not None:
+                parts.append(f"user={record.user_id}")
+            if hasattr(record, "client_ip") and record.client_ip:
+                parts.append(f"ip={record.client_ip}")
+            ctx_line = "<i>" + html.escape(" · ".join(parts)) + "</i>"
+
         tb_text = ""
         if record.exc_info and record.exc_info[0] is not None:
             tb_text = "".join(traceback.format_exception(*record.exc_info))
@@ -57,7 +69,10 @@ class HTMLFormatter(logging.Formatter):
             escaped_tb = html.escape(tb_text, quote=True)
             tb_html = f'<pre><code class="language-python">{escaped_tb}</code></pre>'
 
-        full_html = header + "\n" + body
+        full_html = header
+        if ctx_line:
+            full_html += "\n" + ctx_line
+        full_html += "\n" + body
         if tb_html:
             full_html += "\n\n" + tb_html
 

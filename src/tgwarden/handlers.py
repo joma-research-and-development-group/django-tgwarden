@@ -59,9 +59,7 @@ class TelegramHandler(logging.Handler):
             if self._gate is not None and not self._gate.submit(record):
                 return
             fr = self._formatter.format_record(record)
-            topic_id = (
-                self._settings.topics.get(record.levelname) if self._settings else None
-            )
+            topic_id = self._settings.topics.get(record.levelname) if self._settings else None
             payload = SendPayload(
                 text=fr.message,
                 topic_id=topic_id,

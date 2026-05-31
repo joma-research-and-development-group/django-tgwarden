@@ -45,9 +45,7 @@ class AsyncWorkerTransport:
         return self._queue.qsize()
 
     def _start_worker(self) -> None:
-        self._thread = threading.Thread(
-            target=self._run_loop, name="tgwarden-worker", daemon=True
-        )
+        self._thread = threading.Thread(target=self._run_loop, name="tgwarden-worker", daemon=True)
         self._thread.start()
         self._started.wait(timeout=5.0)
 
@@ -125,9 +123,7 @@ class AsyncWorkerTransport:
             if self._shutdown_requested and self._queue.empty():  # type: ignore[union-attr]
                 break
 
-    async def _rate_limited_send(
-        self, text: str, *, topic_id: int | None
-    ) -> None:
+    async def _rate_limited_send(self, text: str, *, topic_id: int | None) -> None:
         await self._global_bucket.acquire()
         await self._chat_bucket.acquire()
         await self._send_message_with_retry(text, topic_id=topic_id)
@@ -137,9 +133,7 @@ class AsyncWorkerTransport:
         await self._chat_bucket.acquire()
         await self._send_document_with_retry(payload)
 
-    async def _send_message_with_retry(
-        self, text: str, *, topic_id: int | None
-    ) -> None:
+    async def _send_message_with_retry(self, text: str, *, topic_id: int | None) -> None:
         base_url = f"{self._settings.api_base_url}/bot{self._settings.bot_token}"
         body: dict[str, Any] = {
             "chat_id": self._settings.chat_id,

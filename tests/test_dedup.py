@@ -28,9 +28,7 @@ def test_subsequent_occurrences_suppressed() -> None:
 
 def test_window_close_emits_followup_with_count() -> None:
     followups: list[tuple[Fingerprint, int, float]] = []
-    gate = DedupGate(
-        window_seconds=0.05, on_followup=lambda fp, c, e: followups.append((fp, c, e))
-    )
+    gate = DedupGate(window_seconds=0.05, on_followup=lambda fp, c, e: followups.append((fp, c, e)))
     gate.submit(_make_record())
     gate.submit(_make_record())
     gate.submit(_make_record())
