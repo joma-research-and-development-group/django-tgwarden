@@ -13,6 +13,13 @@ Build **`django-tgwarden`** — a production-grade Django logging handler that s
 
 Distribution target: PyPI as `django-tgwarden`, importable as `tgwarden`.
 
+> **Current status:** ✅ All phases (0–9) complete. `v0.1.1` is released on
+> [PyPI](https://pypi.org/project/django-tgwarden/). The phase-gated workflow
+> below is retained as the historical build record and the process for any
+> future major rework. Day-to-day changes now follow the branching model in §5
+> (`dev` → version tag → `main`). Integrator/agent setup lives in
+> [`INSTALL.md`](./INSTALL.md).
+
 ---
 
 ## 2. Workspace layout
@@ -253,4 +260,4 @@ python manage.py runserver
 
 ---
 
-*Last updated: Phase 0 (initial draft).*
+*Last updated: v0.1.1 — all phases complete, released to PyPI.*
