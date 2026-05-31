@@ -30,6 +30,7 @@ class TgwardenSettings:
     batch_flush_seconds: float = 2.0
     rate_limit_global_per_sec: float = 30.0
     rate_limit_per_chat_per_min: float = 20.0
+    dedup_window_seconds: float = 60.0
 
 
 def get_settings() -> TgwardenSettings:
@@ -71,6 +72,7 @@ def get_settings() -> TgwardenSettings:
         retry_base_seconds=float(raw.get("RETRY_BASE_SECONDS", 0.5)),
         retry_cap_seconds=float(raw.get("RETRY_CAP_SECONDS", 30.0)),
         topics={k.upper(): int(v) for k, v in raw.get("TOPICS", {}).items()},
+        dedup_window_seconds=float(raw.get("DEDUP_WINDOW_SECONDS", 60.0)),
     )
     return _cached_settings
 
