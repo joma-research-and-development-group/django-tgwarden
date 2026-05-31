@@ -14,5 +14,5 @@ DATABASES = {
 }
 
 USE_TZ = True
-SECRET_KEY = "test"  # noqa: S105
+SECRET_KEY = "test"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
