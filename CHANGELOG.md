@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-05-31
+
+### Fixed
+
+- `AsyncWorkerTransport` shutdown no longer hangs the process or emits
+  `RuntimeError: Event loop stopped before Future completed` /
+  `cannot schedule new futures after interpreter shutdown`. The final drain now
+  runs via `run_coroutine_threadsafe` with the main thread blocking on the
+  result, so the last network send completes while the interpreter is alive;
+  the loop is then allowed to finish on its own instead of being force-stopped.
+- `DedupGate` no longer spawns a `threading.Timer` per fingerprint (which
+  exhausted OS threads under high-cardinality load); a single daemon sweep
+  thread now expires windows.
+- 429 `Retry-After` waits are capped at `retry_cap_seconds` and skipped during
+  shutdown to keep teardown bounded.
+
 ## [0.1.0] - 2026-05-31
 
 ### Added

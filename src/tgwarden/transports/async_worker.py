@@ -28,6 +28,7 @@ class AsyncWorkerTransport:
         self._thread: threading.Thread | None = None
         self._started = threading.Event()
         self._shutdown_requested = False
+        self._shutdown_started = False
 
         # Stats
         self.sent_count = 0
@@ -54,7 +55,10 @@ class AsyncWorkerTransport:
         asyncio.set_event_loop(self._loop)
         self._queue = asyncio.Queue(maxsize=self._settings.queue_max_size)
         self._started.set()
-        self._loop.run_until_complete(self._main())
+        try:
+            self._loop.run_until_complete(self._main())
+        finally:
+            self._loop.close()
 
     async def _main(self) -> None:
         async with httpx.AsyncClient(timeout=self._settings.request_timeout) as client:
@@ -74,8 +78,6 @@ class AsyncWorkerTransport:
                 await self._consumer()
             finally:
                 ticker.cancel()
-                for b in self._batchers.values():
-                    await b.force_flush()
 
     async def _ticker(self) -> None:
         """Periodic flush for time-based batching."""
@@ -107,6 +109,7 @@ class AsyncWorkerTransport:
                 )
             except TimeoutError:
                 if self._shutdown_requested:
+                    await self._flush_all()
                     break
                 continue
 
@@ -121,7 +124,13 @@ class AsyncWorkerTransport:
             self._queue.task_done()  # type: ignore[union-attr]
 
             if self._shutdown_requested and self._queue.empty():  # type: ignore[union-attr]
+                await self._flush_all()
                 break
+
+    async def _flush_all(self) -> None:
+        """Force-flush every batcher while the loop is still alive."""
+        for b in self._batchers.values():
+            await b.force_flush()
 
     async def _rate_limited_send(self, text: str, *, topic_id: int | None) -> None:
         await self._global_bucket.acquire()
@@ -194,10 +203,13 @@ class AsyncWorkerTransport:
                 return
 
             if resp.status_code == 429:
+                if self._shutdown_requested:
+                    self.dropped_count += 1
+                    return
                 retry_after = resp.headers.get("Retry-After")
                 wait = float(retry_after) if retry_after else None
                 if wait:
-                    await asyncio.sleep(wait)
+                    await asyncio.sleep(min(wait, cap))
                 else:
                     await self._backoff(attempt, base, cap)
                 continue
@@ -248,28 +260,41 @@ class AsyncWorkerTransport:
 
     def flush(self, timeout: float = 5.0) -> bool:
         """Wait for the queue to drain and batchers to flush."""
-        if self._loop is None or self._queue is None:
+        if self._loop is None or self._queue is None or not self._loop.is_running():
             return True
 
         async def _drain() -> None:
             await self._queue.join()  # type: ignore[union-attr]
-            for b in self._batchers.values():
-                await b.force_flush()
+            await self._flush_all()
 
-        future = asyncio.run_coroutine_threadsafe(_drain(), self._loop)
         try:
+            future = asyncio.run_coroutine_threadsafe(_drain(), self._loop)
             future.result(timeout=timeout)
             return True
-        except (TimeoutError, Exception):
+        except (TimeoutError, RuntimeError, Exception):
             return False
 
     def shutdown(self) -> None:
-        """Flush remaining items and stop the worker loop."""
-        if self._shutdown_requested:
+        """Drain pending records (while the loop and interpreter are alive),
+        then signal the consumer to stop and join the worker thread.
+
+        The drain runs via ``run_coroutine_threadsafe`` and the main thread
+        blocks on its result. This keeps the interpreter alive during the final
+        network send, avoiding ``cannot schedule new futures after interpreter
+        shutdown``. We never call ``loop.stop()`` — the consumer exits on the
+        shutdown flag and ``run_until_complete`` returns on its own.
+        """
+        if self._shutdown_started:
             return
+        self._shutdown_started = True
+
+        # 1. Drain queue + flush batchers while everything is alive.
+        drain_budget = (
+            self._settings.request_timeout * self._settings.retry_max_attempts + 5.0
+        )
+        self.flush(timeout=drain_budget)
+
+        # 2. Signal the consumer to exit, then join.
         self._shutdown_requested = True
-        self.flush(timeout=3.0)
-        if self._loop and self._loop.is_running():
-            self._loop.call_soon_threadsafe(self._loop.stop)
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=3.0)
+            self._thread.join(timeout=self._settings.request_timeout + 5.0)
