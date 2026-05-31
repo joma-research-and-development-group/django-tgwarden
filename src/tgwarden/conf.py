@@ -25,6 +25,11 @@ class TgwardenSettings:
     retry_base_seconds: float = 0.5
     retry_cap_seconds: float = 30.0
     topics: dict[str, int] = field(default_factory=dict)
+    batch_max_records: int = 20
+    batch_max_bytes: int = 3500
+    batch_flush_seconds: float = 2.0
+    rate_limit_global_per_sec: float = 30.0
+    rate_limit_per_chat_per_min: float = 20.0
 
 
 def get_settings() -> TgwardenSettings:
