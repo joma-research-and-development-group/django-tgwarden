@@ -2,15 +2,43 @@
 
 > A production-grade Django logging handler that ships log records to a Telegram supergroup with per-severity topic routing, batching, deduplication, rate-limiting, and a non-blocking async worker.
 
-🚧 **This repo is being built phase-by-phase by AI agents.**
+## Installation
 
-For agents and contributors:
+```bash
+pip install django-tgwarden
+```
 
-- 📜 [`AGENTS.md`](./AGENTS.md) — agent roles, phase-gated workflow, conventions, verification protocol, version-control rules.
-- 🗺️ [`phases/`](./phases/) — detailed 10-phase build plan, one Markdown file per phase. Start at [`phases/README.md`](./phases/README.md) for the index and status table.
+## Quick start
 
-A separate Django project at `../tgwarden-testbed/` is used to verify each phase end-to-end against a real Telegram bot before the phase is merged.
+```python
+# settings.py
+INSTALLED_APPS = [
+    ...
+    "tgwarden",
+]
+```
+
+Full configuration docs coming after Phase 1.
 
 ## Status
 
-Phase 0 (bootstrap) — pending kickoff.
+🚧 **Phase 0 (bootstrap)** — package skeleton, CI, and testbed created.
+
+## Development
+
+```bash
+git clone https://github.com/joma-research-and-development-group/django-tgwarden.git
+cd django-tgwarden
+python -m venv .venv && source .venv/bin/activate
+pip install -e .[dev]
+pre-commit install
+```
+
+## For agents and contributors
+
+- 📜 [`AGENTS.md`](./AGENTS.md) — agent roles, phase-gated workflow, conventions.
+- 🗺️ [`phases/`](./phases/) — detailed 10-phase build plan.
+
+## License
+
+MIT
