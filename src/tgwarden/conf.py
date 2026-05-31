@@ -17,9 +17,13 @@ class TgwardenSettings:
     bot_token: str
     chat_id: str
     parse_mode: Literal["HTML", "MarkdownV2"] = "HTML"
-    transport: Literal["sync", "async_worker", "celery"] = "sync"
+    transport: Literal["sync", "async_worker", "celery"] = "async_worker"
     request_timeout: float = 5.0
     api_base_url: str = "https://api.telegram.org"
+    queue_max_size: int = 10_000
+    retry_max_attempts: int = 5
+    retry_base_seconds: float = 0.5
+    retry_cap_seconds: float = 30.0
 
 
 def get_settings() -> TgwardenSettings:
@@ -53,9 +57,13 @@ def get_settings() -> TgwardenSettings:
         bot_token=bot_token,
         chat_id=str(chat_id),
         parse_mode=raw.get("PARSE_MODE", "HTML"),
-        transport=raw.get("TRANSPORT", "sync"),
+        transport=raw.get("TRANSPORT", "async_worker"),
         request_timeout=float(raw.get("REQUEST_TIMEOUT", 5.0)),
         api_base_url=raw.get("API_BASE_URL", "https://api.telegram.org"),
+        queue_max_size=int(raw.get("QUEUE_MAX_SIZE", 10_000)),
+        retry_max_attempts=int(raw.get("RETRY_MAX_ATTEMPTS", 5)),
+        retry_base_seconds=float(raw.get("RETRY_BASE_SECONDS", 0.5)),
+        retry_cap_seconds=float(raw.get("RETRY_CAP_SECONDS", 30.0)),
     )
     return _cached_settings
 

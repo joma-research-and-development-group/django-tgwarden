@@ -1,7 +1,6 @@
 """Logging handler that sends records to Telegram.
 
-WARNING: The 'sync' transport blocks the calling thread until Telegram responds.
-Use transport='async_worker' (Phase 2+) in production.
+Uses the configured transport (async_worker by default) for non-blocking delivery.
 """
 
 from __future__ import annotations
@@ -9,40 +8,41 @@ from __future__ import annotations
 import logging
 import sys
 
-from tgwarden.client import TelegramClient
 from tgwarden.conf import TgwardenSettings, get_settings
 from tgwarden.formatters import HTMLFormatter
+from tgwarden.transports.base import SendPayload, Transport
 
 
 class TelegramHandler(logging.Handler):
     """A logging.Handler that sends log records to a Telegram chat."""
 
+    _EXCLUDED_LOGGERS = frozenset({"httpx", "httpcore"})
+
     def __init__(self, level: int = logging.NOTSET) -> None:
         super().__init__(level)
         self.formatter = HTMLFormatter()
-        self._client: TelegramClient | None = None
+        self._transport: Transport | None = None
         self._settings: TgwardenSettings | None = None
 
-    def _ensure_client(self) -> TelegramClient:
-        """Lazily initialize settings and client on first emit."""
-        if self._client is None:
-            self._settings = get_settings()
-            self._client = TelegramClient(self._settings)
-        return self._client
+    def _ensure_transport(self) -> Transport:
+        """Lazily initialize settings and transport on first emit."""
+        if self._transport is None:
+            from tgwarden.transports import build_transport
 
-    _EXCLUDED_LOGGERS = frozenset({"httpx", "httpcore"})
+            self._settings = get_settings()
+            self._transport = build_transport(self._settings)
+        return self._transport
 
     def emit(self, record: logging.LogRecord) -> None:
         """Emit a log record to Telegram. Never raises."""
-        # Prevent recursive logging from httpx/httpcore
         if record.name.split(".")[0] in self._EXCLUDED_LOGGERS:
             return
         try:
-            client = self._ensure_client()
+            transport = self._ensure_transport()
             text = self.format(record)
-            client.send_message(text)
+            payload = SendPayload(text=text)
+            transport.submit(payload)
         except Exception:
-            # Never crash the host app
             try:
                 print(
                     f"[tgwarden] failed to send log record: {record.getMessage()[:100]}",
@@ -53,8 +53,8 @@ class TelegramHandler(logging.Handler):
             self.handleError(record)
 
     def close(self) -> None:
-        """Close the underlying HTTP client."""
-        if self._client is not None:
-            self._client.close()
-            self._client = None
+        """Shut down the underlying transport."""
+        if self._transport is not None:
+            self._transport.shutdown()
+            self._transport = None
         super().close()

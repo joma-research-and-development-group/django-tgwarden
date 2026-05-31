@@ -22,7 +22,7 @@ def test_get_settings_happy_path() -> None:
     assert s.bot_token == "123:ABC"
     assert s.chat_id == "-1001234567890"
     assert s.parse_mode == "HTML"
-    assert s.transport == "sync"
+    assert s.transport == "async_worker"
 
 
 @override_settings(TGWARDEN={"CHAT_ID": "-100123"})

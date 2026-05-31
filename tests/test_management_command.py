@@ -11,6 +11,7 @@ SETTINGS = {
     "BOT_TOKEN": "123:ABC",
     "CHAT_ID": "-100123",
     "API_BASE_URL": "https://api.telegram.org",
+    "TRANSPORT": "sync",
 }
 
 

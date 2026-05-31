@@ -15,6 +15,7 @@ SETTINGS = {
     "BOT_TOKEN": "123:ABC",
     "CHAT_ID": "-100123",
     "API_BASE_URL": "https://api.telegram.org",
+    "TRANSPORT": "sync",
 }
 
 
@@ -85,5 +86,5 @@ def test_emit_writes_to_stderr_on_failure(capsys: pytest.CaptureFixture[str]) ->
 def test_handler_lazy_settings_load() -> None:
     # Should not raise at construction time even without settings
     handler = TelegramHandler()
-    assert handler._client is None
+    assert handler._transport is None
     handler.close()
