@@ -21,6 +21,11 @@ def build_transport(settings: TgwardenSettings) -> Transport:
 
         return AsyncWorkerTransport(settings)
 
+    if settings.transport == "celery":
+        from tgwarden.transports.celery_ import CeleryTransport
+
+        return CeleryTransport(settings)
+
     raise ConfigurationError(
         f"Unknown transport: {settings.transport!r}. Choose 'sync', 'async_worker', or 'celery'."
     )

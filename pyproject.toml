@@ -29,6 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+celery = ["celery>=5.3"]
 dev = [
     "pytest>=8.0",
     "pytest-django>=4.8",
@@ -39,6 +40,7 @@ dev = [
     "build>=1.2",
     "pre-commit>=3.7",
     "django-stubs>=5.0",
+    "celery>=5.3",
 ]
 
 [project.urls]
@@ -64,6 +66,10 @@ strict = true
 files = ["src/tgwarden"]
 exclude = ["tests"]
 plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "tests.settings"

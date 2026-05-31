@@ -29,6 +29,6 @@ def test_build_transport_async_worker() -> None:
 
 
 def test_unknown_transport_raises() -> None:
-    s = TgwardenSettings(bot_token="t", chat_id="c", transport="celery")  # type: ignore[arg-type]
+    s = TgwardenSettings(bot_token="t", chat_id="c", transport="unknown")  # type: ignore[arg-type]
     with pytest.raises(ConfigurationError, match="Unknown transport"):
         build_transport(s)
