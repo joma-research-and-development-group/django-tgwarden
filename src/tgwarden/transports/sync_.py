@@ -15,11 +15,19 @@ class SyncTransport:
 
     def submit(self, payload: SendPayload) -> None:
         """Send the payload synchronously (blocks until Telegram responds)."""
-        self._client.send_message(
-            payload.text,
-            topic_id=payload.topic_id,
-            parse_mode=payload.parse_mode,
-        )
+        if payload.attachment is not None and payload.attachment_filename is not None:
+            self._client.send_document(
+                payload.attachment,
+                payload.attachment_filename,
+                caption=payload.text,
+                topic_id=payload.topic_id,
+            )
+        else:
+            self._client.send_message(
+                payload.text,
+                topic_id=payload.topic_id,
+                parse_mode=payload.parse_mode,
+            )
 
     def flush(self, timeout: float = 5.0) -> bool:
         """No-op for sync transport."""

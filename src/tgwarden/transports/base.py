@@ -13,7 +13,8 @@ class SendPayload:
     text: str
     topic_id: int | None = None
     parse_mode: str | None = None
-    as_document: bool = False
+    attachment: bytes | None = None
+    attachment_filename: str | None = None
 
 
 class Transport(Protocol):

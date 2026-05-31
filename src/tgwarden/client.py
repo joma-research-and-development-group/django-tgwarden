@@ -54,6 +54,45 @@ class TelegramClient:
             )
         return response.json().get("result", {})  # type: ignore[no-any-return]
 
+    def send_document(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        *,
+        caption: str | None = None,
+        topic_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Send a document via the Telegram Bot API.
+
+        Args:
+            file_bytes: File content as bytes.
+            filename: Name for the uploaded file.
+            caption: Optional HTML caption (max 1024 chars).
+            topic_id: Optional forum topic thread ID.
+
+        Returns:
+            The 'result' dict from the Telegram API response.
+
+        Raises:
+            TelegramAPIError: On non-2xx response from Telegram.
+        """
+        url = f"{self._settings.api_base_url}/bot{self._settings.bot_token}/sendDocument"
+        data: dict[str, Any] = {"chat_id": self._settings.chat_id, "parse_mode": "HTML"}
+        if caption:
+            data["caption"] = caption[:1024]
+        if topic_id is not None:
+            data["message_thread_id"] = topic_id
+
+        response = self._client.post(
+            url, data=data, files={"document": (filename, file_bytes, "text/plain")}
+        )
+        if response.status_code != 200:
+            raise TelegramAPIError(
+                status_code=response.status_code,
+                body=response.text[:500],
+            )
+        return response.json().get("result", {})  # type: ignore[no-any-return]
+
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self._client.close()

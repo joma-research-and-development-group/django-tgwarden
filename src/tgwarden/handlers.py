@@ -1,7 +1,4 @@
-"""Logging handler that sends records to Telegram.
-
-Uses the configured transport (async_worker by default) for non-blocking delivery.
-"""
+"""Logging handler that sends records to Telegram with topic routing."""
 
 from __future__ import annotations
 
@@ -20,7 +17,7 @@ class TelegramHandler(logging.Handler):
 
     def __init__(self, level: int = logging.NOTSET) -> None:
         super().__init__(level)
-        self.formatter = HTMLFormatter()
+        self._formatter = HTMLFormatter()
         self._transport: Transport | None = None
         self._settings: TgwardenSettings | None = None
 
@@ -39,8 +36,15 @@ class TelegramHandler(logging.Handler):
             return
         try:
             transport = self._ensure_transport()
-            text = self.format(record)
-            payload = SendPayload(text=text)
+            fr = self._formatter.format_record(record)
+            topic_id = self._settings.topics.get(record.levelname) if self._settings else None
+            payload = SendPayload(
+                text=fr.message,
+                topic_id=topic_id,
+                parse_mode="HTML",
+                attachment=fr.attachment,
+                attachment_filename=fr.attachment_filename,
+            )
             transport.submit(payload)
         except Exception:
             try:

@@ -57,7 +57,6 @@ class AsyncWorkerTransport:
 
     async def _consumer(self) -> None:
         async with httpx.AsyncClient(timeout=self._settings.request_timeout) as client:
-            url = f"{self._settings.api_base_url}/bot{self._settings.bot_token}/sendMessage"
             while True:
                 try:
                     payload = await asyncio.wait_for(
@@ -69,22 +68,15 @@ class AsyncWorkerTransport:
                         break
                     continue
 
-                await self._send_with_retry(client, url, payload)
+                await self._send_with_retry(client, payload)
                 self._queue.task_done()  # type: ignore[union-attr]
 
                 if self._shutdown_requested and self._queue.empty():  # type: ignore[union-attr]
                     break
 
-    async def _send_with_retry(
-        self, client: httpx.AsyncClient, url: str, payload: SendPayload
-    ) -> None:
-        body: dict[str, Any] = {
-            "chat_id": self._settings.chat_id,
-            "text": payload.text,
-            "parse_mode": payload.parse_mode or self._settings.parse_mode,
-        }
-        if payload.topic_id is not None:
-            body["message_thread_id"] = payload.topic_id
+    async def _send_with_retry(self, client: httpx.AsyncClient, payload: SendPayload) -> None:
+        is_doc = payload.attachment is not None and payload.attachment_filename is not None
+        base_url = f"{self._settings.api_base_url}/bot{self._settings.bot_token}"
 
         max_attempts = self._settings.retry_max_attempts
         base = self._settings.retry_base_seconds
@@ -92,7 +84,35 @@ class AsyncWorkerTransport:
 
         for attempt in range(max_attempts):
             try:
-                resp = await client.post(url, json=body)
+                if is_doc:
+                    data: dict[str, Any] = {
+                        "chat_id": self._settings.chat_id,
+                        "parse_mode": "HTML",
+                    }
+                    if payload.text:
+                        data["caption"] = payload.text[:1024]
+                    if payload.topic_id is not None:
+                        data["message_thread_id"] = payload.topic_id
+                    resp = await client.post(
+                        f"{base_url}/sendDocument",
+                        data=data,
+                        files={
+                            "document": (
+                                payload.attachment_filename or "log.txt",
+                                payload.attachment or b"",
+                                "text/plain",
+                            )
+                        },
+                    )
+                else:
+                    body: dict[str, Any] = {
+                        "chat_id": self._settings.chat_id,
+                        "text": payload.text,
+                        "parse_mode": payload.parse_mode or self._settings.parse_mode,
+                    }
+                    if payload.topic_id is not None:
+                        body["message_thread_id"] = payload.topic_id
+                    resp = await client.post(f"{base_url}/sendMessage", json=body)
             except httpx.RequestError as e:
                 self.last_error = str(e)
                 if attempt == max_attempts - 1:

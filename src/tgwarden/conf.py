@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from tgwarden.exceptions import ConfigurationError
@@ -24,6 +24,7 @@ class TgwardenSettings:
     retry_max_attempts: int = 5
     retry_base_seconds: float = 0.5
     retry_cap_seconds: float = 30.0
+    topics: dict[str, int] = field(default_factory=dict)
 
 
 def get_settings() -> TgwardenSettings:
@@ -64,6 +65,7 @@ def get_settings() -> TgwardenSettings:
         retry_max_attempts=int(raw.get("RETRY_MAX_ATTEMPTS", 5)),
         retry_base_seconds=float(raw.get("RETRY_BASE_SECONDS", 0.5)),
         retry_cap_seconds=float(raw.get("RETRY_CAP_SECONDS", 30.0)),
+        topics={k.upper(): int(v) for k, v in raw.get("TOPICS", {}).items()},
     )
     return _cached_settings
 
