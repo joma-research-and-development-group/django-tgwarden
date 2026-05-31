@@ -8,7 +8,7 @@ def test_import_version() -> None:
     """Package exposes __version__."""
     import tgwarden
 
-    assert tgwarden.__version__ == "0.0.0"
+    assert tgwarden.__version__ == "0.1.0"
 
 
 def test_app_config() -> None:

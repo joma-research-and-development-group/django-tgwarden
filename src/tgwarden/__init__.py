@@ -4,7 +4,7 @@ from tgwarden.exceptions import ConfigurationError, TelegramAPIError, TgwardenEr
 from tgwarden.formatters import HTMLFormatter
 from tgwarden.handlers import TelegramHandler
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 default_app_config = "tgwarden.apps.TgwardenConfig"
 
 __all__ = [
